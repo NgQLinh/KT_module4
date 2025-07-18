@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Quản lý sản phẩm</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .table thead th { background: #007bff; color: #fff; vertical-align: middle; }
+        .form-inline .form-control { width: auto; }
+        .pagination .page-link { color: #007bff; }
+        .pagination .active .page-link { background: #007bff; color: #fff; border-color: #007bff; }
+        .btn-edit { color: #007bff; }
+        .btn-edit:hover { color: #0056b3; }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <b>Quản lý sản phẩm</b>
+            <a href="add-sanpham.html" class="btn btn-dark btn-sm"><i class="fa fa-plus"></i> Thêm Sản Phẩm</a>
+        </div>
+        <div class="card-body">
+            <form id="searchForm" class="form-inline mb-3" onsubmit="return false;">
+                <input type="text" id="searchName" class="form-control mr-2" placeholder="Tên sản phẩm">
+                <input type="number" id="searchPrice" class="form-control mr-2" placeholder="Giá bắt đầu">
+                <select id="searchLoai" class="form-control mr-2"></select>
+                <button type="button" class="btn btn-primary" onclick="loadSanPham(1)"><i class="fa fa-search"></i> Tìm</button>
+            </form>
+            <div id="alertBox"></div>
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>Tên Sản Phẩm</th>
+                        <th>Giá bắt đầu</th>
+                        <th>Loại sản phẩm</th>
+                        <th>Tình trạng</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="sanphamTable"></tbody>
+            </table>
+            <nav class="mt-3">
+                <ul class="pagination" id="pagination"></ul>
+            </nav>
+        </div>
+    </div>
+</div>
+<script>
+let loaiMap = {};
+function loadLoaiSanPham() {
+    fetch('/api/loai-san-pham')
+        .then(res => res.json())
+        .then(data => {
+            loaiMap = {};
+            let select = document.getElementById('searchLoai');
+            select.innerHTML = '<option value="">--Chọn--</option>';
+            data.forEach(loai => {
+                loaiMap[loai.cid] = loai.name;
+                select.innerHTML += `<option value="${loai.cid}">${loai.name}</option>`;
+            });
+        });
+}
+function loadSanPham(page) {
+    let name = document.getElementById('searchName').value;
+    let price = document.getElementById('searchPrice').value;
+    let loai = document.getElementById('searchLoai').value;
+    let url = `/api/sanpham?page=${page}`;
+    if (name) url += `&keyword=${encodeURIComponent(name)}`;
+    if (price) url += `&minPrice=${price}`;
+    if (loai) url += `&loai=${loai}`;
+    fetch(url)
+        .then(res => res.json())
+        .then(json => {
+            let tbody = document.getElementById('sanphamTable');
+            tbody.innerHTML = '';
+            json.data.forEach((sp, idx) => {
+                tbody.innerHTML += `<tr>
+                    <td>${(page-1)*5+idx+1}</td>
+                    <td>${sp.name}</td>
+                    <td>${sp.price.toLocaleString()} VND</td>
+                    <td>${loaiMap[sp.loaiSanPham.cid] || ''}</td>
+                    <td>${sp.status}</td>
+                    <td>
+                        <a href="#" class="btn-edit" title="Sửa" onclick="editSanPham(${sp.id})"><i class="fa fa-pen-to-square"></i></a>
+                        <a href="#" class="text-danger ml-2" title="Xóa" onclick="deleteSanPham(${sp.id})"><i class="fa fa-trash"></i></a>
+                    </td>
+                </tr>`;
+            });
+            renderPagination(page, Math.ceil(json.total/5));
+        });
+}
+function renderPagination(current, total) {
+    let pag = document.getElementById('pagination');
+    pag.innerHTML = '';
+    for(let i=1;i<=total;i++) {
+        pag.innerHTML += `<li class="page-item${i===current?' active':''}"><a class="page-link" href="#" onclick="loadSanPham(${i})">${i}</a></li>`;
+    }
+}
+function deleteSanPham(id) {
+    if(confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
+        fetch(`/api/sanpham?id=${id}`, {method:'DELETE'})
+            .then(res=>res.json())
+            .then(json=>{
+                showAlert(json.success?'Xóa thành công!':'Xóa thất bại!', json.success);
+                loadSanPham(1);
+            });
+    }
+}
+function showAlert(msg, success) {
+    let box = document.getElementById('alertBox');
+    box.innerHTML = `<div class="alert alert-${success?'success':'danger'}">${msg}</div>`;
+    setTimeout(()=>{box.innerHTML='';}, 2000);
+}
+function editSanPham(id) {
+    // TODO: Hiện form sửa, gọi API PUT khi lưu
+    alert('Chức năng sửa sẽ được bổ sung!');
+}
+window.onload = function() {
+    loadLoaiSanPham();
+    loadSanPham(1);
+};
+</script>
+</body>
+</html> 

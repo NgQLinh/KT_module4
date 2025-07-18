@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Thêm mới sản phẩm</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .card { max-width: 500px; margin: 40px auto; }
+        .card-header { background: #f8f9fa; font-weight: bold; }
+        .btn-back { float: right; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fa fa-plus-circle"></i> Thêm mới sản phẩm</span>
+            <a href="index.html" class="btn btn-dark btn-sm btn-back"><i class="fa fa-arrow-left"></i> Quay về trang chủ</a>
+        </div>
+        <div class="card-body">
+            <form id="addForm" onsubmit="return handleSubmit(event)">
+                <div class="form-group">
+                    <label for="name">Tên Sản Phẩm <span class="text-danger">*</span></label>
+                    <input type="text" id="name" name="name" class="form-control" required minlength="5" maxlength="50" placeholder="Nhập tên sản phẩm">
+                </div>
+                <div class="form-group">
+                    <label for="price">Giá bắt đầu <span class="text-danger">*</span></label>
+                    <input type="number" id="price" name="price" class="form-control" min="100000" required placeholder="Nhập giá bắt đầu">
+                </div>
+                <div class="form-group">
+                    <label for="loai">Loại sản phẩm <span class="text-danger">*</span></label>
+                    <select id="loai" name="loai" class="form-control" required></select>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fa fa-plus"></i> Thêm sản phẩm</button>
+            </form>
+            <div id="alertBox"></div>
+        </div>
+    </div>
+</div>
+<script>
+function loadLoaiSanPham() {
+    fetch('/api/loai-san-pham')
+        .then(res => res.json())
+        .then(data => {
+            let select = document.getElementById('loai');
+            if (data.length === 0) {
+                select.innerHTML = '<option value="">Không có loại sản phẩm nào</option>';
+                select.disabled = true;
+            } else {
+                select.disabled = false;
+                select.innerHTML = '<option value="">--Chọn loại sản phẩm--</option>';
+                data.forEach(loai => {
+                    select.innerHTML += `<option value="${loai.cid}">${loai.name}</option>`;
+                });
+            }
+        });
+}
+function handleSubmit(event) {
+    event.preventDefault();
+    let name = document.getElementById('name').value;
+    let price = document.getElementById('price').value;
+    let loai = document.getElementById('loai').value;
+    if (!name || !price || !loai) {
+        showAlert('Vui lòng nhập đầy đủ thông tin!', false);
+        return false;
+    }
+    fetch('/api/sanpham', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: name, price: price, loaiId: loai})
+    })
+    .then(res => res.json())
+    .then(json => {
+        if(json.success) {
+            window.location.href = 'index.html';
+        } else {
+            showAlert('Thêm sản phẩm thất bại!', false);
+        }
+    });
+    return false;
+}
+function showAlert(msg, success) {
+    let box = document.getElementById('alertBox');
+    box.innerHTML = `<div class="alert alert-${success?'success':'danger'}">${msg}</div>`;
+    setTimeout(()=>{box.innerHTML='';}, 2000);
+}
+window.onload = loadLoaiSanPham;
+</script>
+</body>
+</html> 
